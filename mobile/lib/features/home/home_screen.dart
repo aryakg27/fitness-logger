@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+/// Home screen. Later it will show recent workouts and a
+/// "Start workout" button. For now it is a placeholder.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 

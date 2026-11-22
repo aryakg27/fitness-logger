@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// History screen. Later it will list past workouts grouped by date.
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
 
