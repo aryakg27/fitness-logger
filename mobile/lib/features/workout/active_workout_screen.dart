@@ -22,8 +22,12 @@ class ActiveWorkoutScreen extends ConsumerWidget {
         title: const Text('Workout'),
         actions: [
           // Finish for now just goes back home (saving duration comes later).
-          TextButton(
-            onPressed: () => context.go('/home'),
+                    TextButton(
+            onPressed: () async {
+              // Save the duration (or delete the workout if it is empty).
+              await ref.read(workoutRepositoryProvider).finishWorkout(workoutId);
+              if (context.mounted) context.go('/home');
+            },
             child: const Text('Finish'),
           ),
         ],
