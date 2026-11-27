@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../library/exercise_providers.dart';
 import 'exercise_card.dart';
+import 'rest_timer.dart';
 import 'workout_providers.dart';
 
 /// Screen shown while a workout is in progress.
@@ -21,8 +22,7 @@ class ActiveWorkoutScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Workout'),
         actions: [
-          // Finish for now just goes back home (saving duration comes later).
-                    TextButton(
+          TextButton(
             onPressed: () async {
               // Save the duration (or delete the workout if it is empty).
               await ref.read(workoutRepositoryProvider).finishWorkout(workoutId);
@@ -32,20 +32,32 @@ class ActiveWorkoutScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: items.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
-        data: (list) {
-          if (list.isEmpty) {
-            return const Center(child: Text('Tap "Add exercise" to begin'));
-          }
-          return ListView.builder(
-            // Extra space at the bottom so the button doesn't cover the last card.
-            padding: const EdgeInsets.only(bottom: 88),
-            itemCount: list.length,
-            itemBuilder: (context, index) => ExerciseCard(item: list[index]),
-          );
-        },
+      body: Column(
+        children: [
+          // Rest timer bar at the top.
+          const RestTimer(),
+          // Exercise cards fill the rest of the screen.
+          Expanded(
+            child: items.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => Center(child: Text('Error: $error')),
+              data: (list) {
+                if (list.isEmpty) {
+                  return const Center(
+                    child: Text('Tap "Add exercise" to begin'),
+                  );
+                }
+                return ListView.builder(
+                  // Extra space so the button doesn't cover the last card.
+                  padding: const EdgeInsets.only(bottom: 88),
+                  itemCount: list.length,
+                  itemBuilder: (context, index) =>
+                      ExerciseCard(item: list[index]),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showExercisePicker(context),
