@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:go_router/go_router.dart';
 import 'exercise_providers.dart';
 
 /// Library screen: shows all exercises with a search box.
@@ -57,10 +57,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final e = filtered[index];
-                    return ListTile(
+                                       return ListTile(
                       leading: const Icon(Icons.fitness_center),
                       title: Text(e.name),
                       subtitle: Text(e.muscleGroup),
+                      trailing: const Icon(Icons.chevron_right),
+                      // Open the progress page for this exercise.
+                      onTap: () => context.push('/exercise/${e.id}'),
                     );
                   },
                 );

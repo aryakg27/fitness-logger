@@ -21,3 +21,17 @@ final setsProvider =
     StreamProvider.family<List<SetEntry>, int>((ref, workoutExerciseId) {
   return ref.watch(workoutRepositoryProvider).watchSets(workoutExerciseId);
 });
+/// Live list of finished workouts for the History screen.
+final workoutHistoryProvider = StreamProvider<List<Workout>>((ref) {
+  return ref.watch(workoutRepositoryProvider).watchWorkouts();
+});
+
+/// Live data of one workout. The parameter is the workout id.
+final workoutProvider = StreamProvider.family<Workout, int>((ref, workoutId) {
+  return ref.watch(workoutRepositoryProvider).watchWorkout(workoutId);
+});
+/// Live list of every logged set for one exercise (the parameter is the exercise id).
+final exerciseHistoryProvider =
+    StreamProvider.family<List<ExerciseSetRecord>, int>((ref, exerciseId) {
+  return ref.watch(workoutRepositoryProvider).watchExerciseHistory(exerciseId);
+});

@@ -13,6 +13,22 @@ class WorkoutExerciseItem {
   final Exercise exercise;
 }
 
+/// One logged set of an exercise, with the workout it belongs to.
+/// Used for the progress chart and PR on the exercise detail screen.
+class ExerciseSetRecord {
+  const ExerciseSetRecord({
+    required this.workoutId,
+    required this.date,
+    required this.weight,
+    required this.reps,
+  });
+
+  final int workoutId;
+  final DateTime date;
+  final double weight;
+  final int reps;
+}
+
 /// All database operations for workouts and sets.
 class WorkoutRepository {
   WorkoutRepository(this._db);
@@ -95,5 +111,82 @@ class WorkoutRepository {
   /// Deletes one set by its id.
   Future<void> deleteSet(int setId) {
     return (_db.delete(_db.setEntries)..where((t) => t.id.equals(setId))).go();
+  }
+
+  /// Finishes a workout by saving how long it took.
+  /// An empty workout (no exercises) is deleted instead of saved.
+  Future<void> finishWorkout(int workoutId) async {
+    final exercises = await (_db.select(_db.workoutExercises)
+          ..where((t) => t.workoutId.equals(workoutId)))
+        .get();
+
+    if (exercises.isEmpty) {
+      await (_db.delete(_db.workouts)..where((t) => t.id.equals(workoutId)))
+          .go();
+      return;
+    }
+
+    // The workout's date is when it started, so duration = now - start.
+    final workout = await (_db.select(_db.workouts)
+          ..where((t) => t.id.equals(workoutId)))
+        .getSingle();
+    final elapsed = DateTime.now().difference(workout.date).inSeconds;
+    // Store at least 1 second so a finished workout is never hidden.
+    final seconds = elapsed < 1 ? 1 : elapsed;
+
+    await (_db.update(_db.workouts)..where((t) => t.id.equals(workoutId)))
+        .write(WorkoutsCompanion(durationSeconds: Value(seconds)));
+  }
+
+  /// Live list of finished workouts, newest first.
+  /// Unfinished workouts (duration 0) are hidden.
+  Stream<List<Workout>> watchWorkouts() {
+    return (_db.select(_db.workouts)
+          ..where((t) => t.durationSeconds.isBiggerThanValue(0))
+          ..orderBy([(t) => OrderingTerm.desc(t.date)]))
+        .watch();
+  }
+
+  /// Live data of one workout (name, date, duration).
+  Stream<Workout> watchWorkout(int workoutId) {
+    return (_db.select(_db.workouts)..where((t) => t.id.equals(workoutId)))
+        .watchSingle();
+  }
+
+  /// Live list of every set ever logged for one exercise, oldest first.
+  /// Only finished workouts count. Three tables are joined:
+  /// set_entries -> workout_exercises -> workouts.
+  Stream<List<ExerciseSetRecord>> watchExerciseHistory(int exerciseId) {
+    final query = _db.select(_db.setEntries).join([
+      innerJoin(
+        _db.workoutExercises,
+        _db.workoutExercises.id.equalsExp(_db.setEntries.workoutExerciseId),
+      ),
+      innerJoin(
+        _db.workouts,
+        _db.workouts.id.equalsExp(_db.workoutExercises.workoutId),
+      ),
+    ])
+      ..where(
+        _db.workoutExercises.exerciseId.equals(exerciseId) &
+            _db.workouts.durationSeconds.isBiggerThanValue(0),
+      )
+      ..orderBy([
+        OrderingTerm.asc(_db.workouts.date),
+        OrderingTerm.asc(_db.setEntries.setNumber),
+      ]);
+
+    return query.watch().map(
+          (rows) => rows.map((row) {
+            final set = row.readTable(_db.setEntries);
+            final workout = row.readTable(_db.workouts);
+            return ExerciseSetRecord(
+              workoutId: workout.id,
+              date: workout.date,
+              weight: set.weight,
+              reps: set.reps,
+            );
+          }).toList(),
+        );
   }
 }
